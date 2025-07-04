@@ -12,5 +12,8 @@
   },
   "compilerOptions": {
     "lib": ["deno.window", "dom"]
+  },
+  "fmt": {
+    "exclude": ["src/test-fixtures/"]
   }
 }
