@@ -1,4 +1,7 @@
 {
+  "name": "@magurotuna/fetch-markdownify",
+  "version": "0.1.0",
+  "exports": "./src/server.ts",
   "tasks": {
     "start": "deno run --allow-net src/server.ts",
     "dev": "deno run --watch --allow-net src/server.ts",

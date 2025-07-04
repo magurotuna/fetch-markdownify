@@ -4,10 +4,15 @@
     "jsr:@std/assert@1": "1.0.13",
     "jsr:@std/internal@^1.0.6": "1.0.8",
     "npm:@modelcontextprotocol/sdk@*": "1.15.0_express@5.1.0_zod@3.25.73",
+    "npm:@modelcontextprotocol/sdk@1.15.0": "1.15.0_express@5.1.0_zod@3.25.73",
     "npm:@types/turndown@*": "5.0.5",
+    "npm:@types/turndown@5.0.5": "5.0.5",
     "npm:turndown-plugin-gfm@*": "1.0.2",
+    "npm:turndown-plugin-gfm@1.0.2": "1.0.2",
     "npm:turndown@*": "7.2.0",
-    "npm:zod@*": "3.25.73"
+    "npm:turndown@7.2.0": "7.2.0",
+    "npm:zod@*": "3.25.73",
+    "npm:zod@3.23.8": "3.23.8"
   },
   "jsr": {
     "@std/assert@1.0.13": {
@@ -37,7 +42,7 @@
         "express-rate-limit",
         "pkce-challenge",
         "raw-body",
-        "zod",
+        "zod@3.25.73",
         "zod-to-json-schema"
       ]
     },
@@ -522,8 +527,11 @@
     "zod-to-json-schema@3.24.6_zod@3.25.73": {
       "integrity": "sha512-h/z3PKvcTcTetyjl1fkj79MHNEjm+HpD6NXheWjzOekY7kV+lwDYnHw+ivHkijnCSMz1yJaWBD9vu/Fcmk+vEg==",
       "dependencies": [
-        "zod"
+        "zod@3.25.73"
       ]
+    },
+    "zod@3.23.8": {
+      "integrity": "sha512-XBx9AXhXktjUqnepgTiE5flcKIYWi/rme0Eaj+5Y0lftuGBq+jyRu/md4WnuxqgP1ubdpNCsYEYPxrzVHD8d6g=="
     },
     "zod@3.25.73": {
       "integrity": "sha512-fuIKbQAWQl22Ba5d1quwEETQYjqnpKVyZIWAhbnnHgnDd3a+z4YgEfkI5SZ2xMELnLAXo/Flk2uXgysZNf0uaA=="

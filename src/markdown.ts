@@ -1,6 +1,6 @@
-import TurndownService from "npm:turndown";
-import type { Node } from "npm:@types/turndown";
-import { gfm } from "npm:turndown-plugin-gfm";
+import TurndownService from "npm:turndown@7.2.0";
+import type { Node } from "npm:@types/turndown@5.0.5";
+import { gfm } from "npm:turndown-plugin-gfm@1.0.2";
 
 export function convertToMarkdown(
   content: string,

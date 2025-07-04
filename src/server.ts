@@ -1,10 +1,10 @@
-import { Server } from "npm:@modelcontextprotocol/sdk/server/index.js";
-import { StdioServerTransport } from "npm:@modelcontextprotocol/sdk/server/stdio.js";
+import { Server } from "npm:@modelcontextprotocol/sdk@1.15.0/server/index.js";
+import { StdioServerTransport } from "npm:@modelcontextprotocol/sdk@1.15.0/server/stdio.js";
 import {
   CallToolRequestSchema,
   ListToolsRequestSchema,
-} from "npm:@modelcontextprotocol/sdk/types.js";
-import { z } from "npm:zod";
+} from "npm:@modelcontextprotocol/sdk@1.15.0/types.js";
+import { z } from "npm:zod@3.23.8";
 import { convertToMarkdown } from "./markdown.ts";
 
 const FetchUrlSchema = z.object({
@@ -16,7 +16,7 @@ export interface ServerOptions {
 }
 
 // Create a new server instance for each test to avoid connection conflicts
-export function createServer(options: ServerOptions = {}) {
+export function createServer(options: ServerOptions = {}): Server {
   const { fetchFn = fetch } = options;
 
   const server = new Server(
@@ -110,7 +110,7 @@ export function createServer(options: ServerOptions = {}) {
 }
 
 // Default server instance for production use
-export const server = createServer();
+export const server: Server = createServer();
 
 async function main() {
   const transport = new StdioServerTransport();

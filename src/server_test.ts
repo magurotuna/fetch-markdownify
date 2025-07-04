@@ -6,7 +6,7 @@ import {
   ListToolsResultSchema,
   type TextContent,
 } from "npm:@modelcontextprotocol/sdk/types.js";
-import { z } from "npm:zod";
+import type { z } from "npm:zod";
 import { createServer } from "./server.ts";
 import complexHtml from "./test-fixtures/complex.html" with { type: "text" };
 import simpleHtml from "./test-fixtures/simple.html" with { type: "text" };
