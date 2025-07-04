@@ -57,8 +57,6 @@ Add the following to your Claude Desktop configuration file:
       "args": [
         "run",
         "--allow-net",
-        "--allow-read",
-        "--allow-env",
         "/path/to/fetch-markdownify/src/server.ts"
       ]
     }
@@ -142,8 +140,6 @@ This server requires network access to fetch URLs. Deno's permission system
 ensures that the server only has access to:
 
 - Network (`--allow-net`): To fetch URLs
-- Read (`--allow-read`): To read local files if needed
-- Environment (`--allow-env`): To access environment variables
 
 ## License
 
