@@ -101,6 +101,21 @@ Fetches content from a URL and converts it to Markdown.
 
 ## Development
 
+### Testing
+
+The server supports dependency injection for the fetch function, making it easy
+to test:
+
+```typescript
+import { createServer } from "./src/server.ts";
+
+const mockFetch = (_url: string | URL | Request) => {
+  return Promise.resolve(new Response("Mocked response"));
+};
+
+const server = createServer({ fetchFn: mockFetch });
+```
+
 ### Available Tasks
 
 - `deno task start` - Run the server
