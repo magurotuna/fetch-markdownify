@@ -1,5 +1,7 @@
 # fetch-markdownify
 
+[![JSR](https://jsr.io/badges/@magurotuna/fetch-markdownify)](https://jsr.io/@magurotuna/fetch-markdownify)
+
 An MCP (Model Context Protocol) server that fetches content from URLs and
 converts it to clean Markdown format.
 
