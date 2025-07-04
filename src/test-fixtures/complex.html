@@ -1,0 +1,115 @@
+<!DOCTYPE html>
+<html>
+  <head>
+    <title>Complex HTML Test</title>
+  </head>
+  <body>
+    <h1>Main Title</h1>
+    <p>
+      This is a paragraph with <strong>bold text</strong>, <em>italic text</em>,
+      and <code>inline code</code>.
+    </p>
+
+    <h2>Section with Links and Images</h2>
+    <p>
+      Check out <a href="https://example.com" title="Example Site">this link</a>
+      and this image:
+    </p>
+    <img
+      src="https://example.com/image.jpg"
+      alt="Example Image"
+      title="An example image"
+    >
+
+    <h3>Lists Section</h3>
+    <p>Here's an unordered list:</p>
+    <ul>
+      <li>First item</li>
+      <li>Second item with <strong>formatting</strong></li>
+      <li>Third item with a <a href="https://example.com">link</a></li>
+    </ul>
+
+    <p>And an ordered list:</p>
+    <ol>
+      <li>Step one</li>
+      <li>Step two</li>
+      <li>Step three</li>
+    </ol>
+
+    <h3>Nested Lists</h3>
+    <ul>
+      <li>
+        Parent item 1
+        <ul>
+          <li>Child item 1.1</li>
+          <li>Child item 1.2</li>
+        </ul>
+      </li>
+      <li>
+        Parent item 2
+        <ol>
+          <li>Numbered child 2.1</li>
+          <li>Numbered child 2.2</li>
+        </ol>
+      </li>
+    </ul>
+
+    <h2>Table Section</h2>
+    <table>
+      <thead>
+        <tr>
+          <th>Header 1</th>
+          <th>Header 2</th>
+          <th>Header 3</th>
+        </tr>
+      </thead>
+      <tbody>
+        <tr>
+          <td>Cell 1</td>
+          <td>Cell 2</td>
+          <td>Cell 3</td>
+        </tr>
+        <tr>
+          <td>Cell 4</td>
+          <td>Cell 5</td>
+          <td>Cell 6</td>
+        </tr>
+      </tbody>
+    </table>
+
+    <h2>Blockquote Section</h2>
+    <blockquote>
+      <p>This is a blockquote with multiple paragraphs.</p>
+      <p>
+        It can contain <strong>formatted text</strong> and even <a href="#"
+        >links</a>.
+      </p>
+    </blockquote>
+
+    <h2>Code Block Section</h2>
+    <pre>
+<code class="language-typescript">
+interface User {
+  name: string;
+  age: number;
+}
+
+function greet(user: User): string {
+  return `Hello, ${user.name}!`;
+}
+  </code></pre>
+
+    <h2>Mixed Content</h2>
+    <p>Here's a paragraph followed by a horizontal rule:</p>
+    <hr>
+    <p>And another paragraph after the rule.</p>
+
+    <h3>Definition List</h3>
+    <dl>
+      <dt>Term 1</dt>
+      <dd>Definition 1</dd>
+      <dt>Term 2</dt>
+      <dd>Definition 2</dd>
+    </dl>
+  </body>
+</html>

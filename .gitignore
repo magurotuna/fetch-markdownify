@@ -24,3 +24,6 @@ coverage/
 # Temporary files
 *.tmp
 temp/
+
+# Debug output
+debug-output.md

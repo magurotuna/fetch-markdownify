@@ -2,10 +2,10 @@
   "tasks": {
     "start": "deno run --allow-net --allow-read --allow-env src/server.ts",
     "dev": "deno run --watch --allow-net --allow-read --allow-env src/server.ts",
-    "test": "deno test --allow-net",
+    "test": "deno test --allow-net --allow-write=./debug-output.md --unstable-raw-imports",
     "fmt": "deno fmt",
     "lint": "deno lint",
-    "check": "deno check src/**/*.ts"
+    "check": "deno check --unstable-raw-imports src/**/*.ts"
   },
   "imports": {
     "@std/assert": "jsr:@std/assert@1"

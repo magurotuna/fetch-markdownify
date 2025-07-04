@@ -8,9 +8,36 @@ import {
 } from "npm:@modelcontextprotocol/sdk/types.js";
 import { z } from "npm:zod";
 import { createServer } from "./server.ts";
+import complexHtml from "./test-fixtures/complex.html" with { type: "text" };
+import simpleHtml from "./test-fixtures/simple.html" with { type: "text" };
+import expectedComplexMd from "./test-fixtures/expected-complex.md" with {
+  type: "text",
+};
+import expectedSimpleMd from "./test-fixtures/expected-simple.md" with {
+  type: "text",
+};
 
 // Type helper for CallToolResult
 type CallToolResultType = z.infer<typeof CallToolResultSchema>;
+
+// Helper function for comparing markdown with better error messages
+function assertMarkdownEquals(
+  actual: string,
+  expected: string,
+  message?: string,
+) {
+  const actualTrimmed = actual.trim();
+  const expectedTrimmed = expected.trim();
+
+  if (actualTrimmed !== expectedTrimmed) {
+    // Save actual output for debugging
+    const debugPath = "./debug-output.md";
+    Deno.writeTextFileSync(debugPath, actual);
+    console.error(`\nActual markdown output saved to: ${debugPath}\n`);
+  }
+
+  assertEquals(actualTrimmed, expectedTrimmed, message);
+}
 
 // Test the exported handlers from server.ts
 Deno.test("server module loads correctly", async () => {
@@ -65,10 +92,10 @@ Deno.test("server lists tools correctly", async () => {
 });
 
 Deno.test("server fetches and converts HTML content", async () => {
-  // Mock fetch function
+  // Mock fetch function using imported HTML
   const mockFetch = (_url: string | URL | Request) => {
     return Promise.resolve(
-      new Response("<h1>Test Title</h1><p>This is a test paragraph.</p>", {
+      new Response(simpleHtml, {
         status: 200,
         headers: { "content-type": "text/html" },
       }),
@@ -104,9 +131,9 @@ Deno.test("server fetches and converts HTML content", async () => {
   assertEquals(result.content.length > 0, true);
   const firstContent = result.content[0] as TextContent;
   assertEquals(firstContent.type, "text");
-  const text = firstContent.text;
-  assertEquals(text.includes("# Test Title"), true);
-  assertEquals(text.includes("This is a test paragraph."), true);
+
+  // Compare against expected markdown
+  assertMarkdownEquals(firstContent.text, expectedSimpleMd);
 
   await client.close();
   await server.close();
@@ -290,6 +317,53 @@ function hello() {
   assertEquals(text.includes("# Code Example"), true);
   assertEquals(text.includes("```javascript"), true);
   assertEquals(text.includes("function hello()"), true);
+
+  await client.close();
+  await server.close();
+});
+
+Deno.test("server handles complex HTML with various elements", async () => {
+  // Mock fetch function using imported HTML
+  const mockFetch = (_url: string | URL | Request) => {
+    return Promise.resolve(
+      new Response(complexHtml, {
+        status: 200,
+        headers: { "content-type": "text/html" },
+      }),
+    );
+  };
+
+  const [clientTransport, serverTransport] = InMemoryTransport
+    .createLinkedPair();
+  const server = createServer({ fetchFn: mockFetch });
+  await server.connect(serverTransport);
+
+  const client = new Client({
+    name: "test-client",
+    version: "1.0.0",
+  }, {
+    capabilities: {},
+  });
+
+  await client.connect(clientTransport);
+
+  const result = await client.callTool(
+    {
+      name: "fetch-url",
+      arguments: {
+        url: "https://example.com/complex",
+      },
+    },
+    CallToolResultSchema,
+  ) as CallToolResultType;
+
+  assertExists(result.content);
+  assertEquals(result.content.length > 0, true);
+  const firstContent = result.content[0] as TextContent;
+  assertEquals(firstContent.type, "text");
+
+  // Compare against expected markdown
+  assertMarkdownEquals(firstContent.text, expectedComplexMd);
 
   await client.close();
   await server.close();
