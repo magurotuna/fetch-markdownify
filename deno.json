@@ -3,9 +3,9 @@
   "version": "0.1.0",
   "exports": "./src/server.ts",
   "tasks": {
-    "start": "deno run --allow-net src/server.ts",
-    "dev": "deno run --watch --allow-net src/server.ts",
-    "test": "deno test --allow-net --allow-write=./debug-output.md --unstable-raw-imports",
+    "start": "deno run --allow-net --allow-write src/server.ts",
+    "dev": "deno run --watch --allow-net --allow-write src/server.ts",
+    "test": "deno test --allow-net --allow-write --allow-read --unstable-raw-imports",
     "fmt": "deno fmt",
     "lint": "deno lint",
     "check": "deno check --unstable-raw-imports src/**/*.ts"

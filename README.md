@@ -12,7 +12,9 @@ converts it to clean Markdown format.
   [turndown](https://mixmark-io.github.io/turndown/)
 - Handles various content types (HTML, plain text, etc.)
 - Preserves code blocks and formatting
-- Built with Deno, allowing it to run with a permission that's really needed
+- **Pagination support** for large content (chunking)
+- **File-saving option** for efficient handling of large documents
+- Built with Deno for secure, permission-based execution
 
 ## Installation (Claude Code)
 
@@ -24,13 +26,18 @@ curl -fsSL https://deno.land/install.sh | sh
 
 2. Add to Claude Code
 
-Just run `claude mcp add` command to set it up as an MCP server. Notice that the
-only granted permission is `--allow-net`; this ensures no filesystem access, env
-var access, or subprocess spawning can be performed.
+Use the `claude mcp add` command to set it up as an MCP server. The server
+requires network and write permissions:
 
 ```bash
-claude mcp add fetch-markdownify deno -- run --allow-net jsr:@magurotuna/fetch-markdownify
+claude mcp add fetch-markdownify deno -- run --allow-net --allow-write jsr:@magurotuna/fetch-markdownify
 ```
+
+**Permissions explained:**
+
+- `--allow-net`: Required to fetch content from URLs
+- `--allow-write`: Required for the file-saving feature (creates temporary
+  files)
 
 That's it!
 
@@ -51,12 +58,23 @@ Fetches content from a URL and converts it to Markdown.
 **Input:**
 
 - `url` (string, required): The URL to fetch and convert
+- `limit` (number, optional): Maximum number of characters to return
+- `chunk_size` (number, optional): Maximum tokens per chunk (default: 20000)
+- `chunk_index` (number, optional): Which chunk to retrieve (0-based,
+  default: 0)
+- `metadata_only` (boolean, optional): Return only metadata about chunks
+  (default: false)
+- `save_to_file` (boolean, optional): Save content to temporary file instead of
+  returning it (default: false)
 
 **Output:**
 
-- Markdown-formatted content of the fetched URL
+- When `save_to_file` is false: Markdown-formatted content (optionally chunked)
+- When `save_to_file` is true: File path and metadata
 
-**Example:**
+**Examples:**
+
+Basic usage:
 
 ```json
 {
@@ -67,12 +85,60 @@ Fetches content from a URL and converts it to Markdown.
 }
 ```
 
+Using pagination for large content:
+
+```json
+{
+  "name": "fetch-url",
+  "arguments": {
+    "url": "https://example.com/large-doc",
+    "chunk_size": 10000,
+    "chunk_index": 0
+  }
+}
+```
+
+Saving to file (recommended for very large content):
+
+```json
+{
+  "name": "fetch-url",
+  "arguments": {
+    "url": "https://example.com/huge-doc",
+    "save_to_file": true
+  }
+}
+```
+
+When `save_to_file` is true, the response looks like:
+
+```json
+{
+  "saved_to_file": true,
+  "file_path": "/tmp/fetch_markdownify_abc123.md",
+  "file_metadata": {
+    "path": "/tmp/fetch_markdownify_abc123.md",
+    "size_bytes": 150000,
+    "size_readable": "146.5 KB",
+    "created_at": "2024-01-20T10:30:00.000Z",
+    "url": "https://example.com/huge-doc",
+    "total_tokens": 37500
+  },
+  "message": "Content saved successfully. Use file reading tools to access the content."
+}
+```
+
 ## Security
 
-This server requires network access to fetch URLs. Deno's permission system
-ensures that the server only has access to:
+This server uses Deno's permission system to ensure secure operation. Required
+permissions:
 
-- Network (`--allow-net`): To fetch URLs
+- **Network** (`--allow-net`): To fetch content from URLs
+- **Write** (`--allow-write`): To create temporary files when using the
+  `save_to_file` feature
+  - Files are created using Deno's `makeTempFile()` which places them in the
+    system's temporary directory
+  - No access to other filesystem locations
 
 ## License
 
