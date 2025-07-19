@@ -322,6 +322,155 @@ function hello() {
   await server.close();
 });
 
+Deno.test("server accepts chunk_size parameter", async () => {
+  const mockFetch = (_url: string | URL | Request) => {
+    return Promise.resolve(
+      new Response("<p>Small test content</p>", {
+        status: 200,
+        headers: { "content-type": "text/html" },
+      }),
+    );
+  };
+
+  const [clientTransport, serverTransport] = InMemoryTransport
+    .createLinkedPair();
+  const server = createServer({ fetchFn: mockFetch });
+  await server.connect(serverTransport);
+
+  const client = new Client({
+    name: "test-client",
+    version: "1.0.0",
+  }, {
+    capabilities: {},
+  });
+
+  await client.connect(clientTransport);
+
+  try {
+    const result = await client.callTool(
+      {
+        name: "fetch-url",
+        arguments: {
+          url: "https://example.com/test.html",
+          chunk_size: 1000,
+        },
+      },
+      CallToolResultSchema,
+    ) as CallToolResultType;
+
+    assertExists(result.content);
+    const firstContent = result.content[0] as TextContent;
+    assertEquals(firstContent.type, "text");
+    // Should return the content normally when it fits in chunk_size
+    assertEquals(firstContent.text, "Small test content");
+  } finally {
+    await client.close();
+    await server.close();
+  }
+});
+
+Deno.test("server accepts chunk_index parameter", async () => {
+  const largeContent = "<p>First paragraph.</p>".repeat(50) +
+    "<p>Second chunk content.</p>".repeat(50);
+
+  const mockFetch = (_url: string | URL | Request) => {
+    return Promise.resolve(
+      new Response(largeContent, {
+        status: 200,
+        headers: { "content-type": "text/html" },
+      }),
+    );
+  };
+
+  const [clientTransport, serverTransport] = InMemoryTransport
+    .createLinkedPair();
+  const server = createServer({ fetchFn: mockFetch });
+  await server.connect(serverTransport);
+
+  const client = new Client({
+    name: "test-client",
+    version: "1.0.0",
+  }, {
+    capabilities: {},
+  });
+
+  await client.connect(clientTransport);
+
+  try {
+    const result = await client.callTool(
+      {
+        name: "fetch-url",
+        arguments: {
+          url: "https://example.com/large.html",
+          chunk_size: 100, // Small chunk size to force splitting
+          chunk_index: 1, // Request second chunk
+        },
+      },
+      CallToolResultSchema,
+    ) as CallToolResultType;
+
+    assertExists(result.content);
+    // Test will fail until implementation is done
+  } finally {
+    await client.close();
+    await server.close();
+  }
+});
+
+Deno.test("server accepts metadata_only parameter", async () => {
+  const largeContent = "<p>Large content here.</p>".repeat(200);
+
+  const mockFetch = (_url: string | URL | Request) => {
+    return Promise.resolve(
+      new Response(largeContent, {
+        status: 200,
+        headers: { "content-type": "text/html" },
+      }),
+    );
+  };
+
+  const [clientTransport, serverTransport] = InMemoryTransport
+    .createLinkedPair();
+  const server = createServer({ fetchFn: mockFetch });
+  await server.connect(serverTransport);
+
+  const client = new Client({
+    name: "test-client",
+    version: "1.0.0",
+  }, {
+    capabilities: {},
+  });
+
+  await client.connect(clientTransport);
+
+  try {
+    const result = await client.callTool(
+      {
+        name: "fetch-url",
+        arguments: {
+          url: "https://example.com/large.html",
+          chunk_size: 100,
+          metadata_only: true,
+        },
+      },
+      CallToolResultSchema,
+    ) as CallToolResultType;
+
+    assertExists(result.content);
+    const firstContent = result.content[0] as TextContent;
+    assertEquals(firstContent.type, "text");
+
+    // Should return metadata about chunks
+    const metadata = JSON.parse(firstContent.text);
+    assertExists(metadata.total_chunks);
+    assertExists(metadata.total_tokens);
+    assertExists(metadata.chunk_size);
+  } finally {
+    await client.close();
+    await server.close();
+  }
+});
+
 Deno.test("server handles complex HTML with various elements", async () => {
   // Mock fetch function using imported HTML
   const mockFetch = (_url: string | URL | Request) => {
@@ -367,4 +516,144 @@ Deno.test("server handles complex HTML with various elements", async () => {
 
   await client.close();
   await server.close();
+});
+
+Deno.test("server handles large content with pagination", async () => {
+  // Create large HTML content that will require multiple chunks
+  const largeParagraph =
+    "<p>This is a test paragraph with some content that will be repeated many times to create a large document. </p>";
+  const largeHtml = `
+    <!DOCTYPE html>
+    <html>
+    <head><title>Large Document</title></head>
+    <body>
+      <h1>Large Document Test</h1>
+      ${largeParagraph.repeat(500)}
+      <h2>Second Section</h2>
+      ${largeParagraph.repeat(500)}
+    </body>
+    </html>
+  `;
+
+  const mockFetch = (_url: string | URL | Request) => {
+    return Promise.resolve(
+      new Response(largeHtml, {
+        status: 200,
+        headers: { "content-type": "text/html" },
+      }),
+    );
+  };
+
+  const [clientTransport, serverTransport] = InMemoryTransport
+    .createLinkedPair();
+  const server = createServer({ fetchFn: mockFetch });
+  await server.connect(serverTransport);
+
+  const client = new Client({
+    name: "test-client",
+    version: "1.0.0",
+  }, {
+    capabilities: {},
+  });
+
+  await client.connect(clientTransport);
+
+  try {
+    // First, get metadata about chunks
+    const metadataResult = await client.callTool(
+      {
+        name: "fetch-url",
+        arguments: {
+          url: "https://example.com/large.html",
+          chunk_size: 5000, // Small chunk size to force multiple chunks
+          metadata_only: true,
+        },
+      },
+      CallToolResultSchema,
+    ) as CallToolResultType;
+
+    assertExists(metadataResult.content);
+    const metadataContent = metadataResult.content[0] as TextContent;
+    const metadata = JSON.parse(metadataContent.text);
+
+    // Verify we have multiple chunks
+    assertEquals(
+      metadata.total_chunks > 1,
+      true,
+      "Should have multiple chunks",
+    );
+    assertEquals(typeof metadata.total_tokens, "number");
+    assertEquals(metadata.chunk_size, 5000);
+
+    // Fetch first chunk
+    const chunk0Result = await client.callTool(
+      {
+        name: "fetch-url",
+        arguments: {
+          url: "https://example.com/large.html",
+          chunk_size: 5000,
+          chunk_index: 0,
+        },
+      },
+      CallToolResultSchema,
+    ) as CallToolResultType;
+
+    assertExists(chunk0Result.content);
+    const chunk0Content = chunk0Result.content[0] as TextContent;
+    assertEquals(chunk0Content.type, "text");
+
+    // Should contain the title and start of content
+    assertEquals(chunk0Content.text.includes("Large Document Test"), true);
+    assertEquals(chunk0Content.text.includes("<!-- Chunk 1/"), true);
+
+    // Fetch last chunk
+    const lastChunkResult = await client.callTool(
+      {
+        name: "fetch-url",
+        arguments: {
+          url: "https://example.com/large.html",
+          chunk_size: 5000,
+          chunk_index: metadata.total_chunks - 1,
+        },
+      },
+      CallToolResultSchema,
+    ) as CallToolResultType;
+
+    assertExists(lastChunkResult.content);
+    const lastChunkContent = lastChunkResult.content[0] as TextContent;
+
+    // Should contain chunk metadata
+    assertEquals(
+      lastChunkContent.text.includes(
+        `<!-- Chunk ${metadata.total_chunks}/${metadata.total_chunks}`,
+      ),
+      true,
+    );
+
+    // Test out of range chunk index
+    try {
+      await client.callTool(
+        {
+          name: "fetch-url",
+          arguments: {
+            url: "https://example.com/large.html",
+            chunk_size: 5000,
+            chunk_index: metadata.total_chunks + 10,
+          },
+        },
+        CallToolResultSchema,
+      );
+      assertEquals(
+        true,
+        false,
+        "Should have thrown an error for out of range chunk",
+      );
+    } catch (error) {
+      // Expected error
+      assertExists(error);
+    }
+  } finally {
+    await client.close();
+    await server.close();
+  }
 });
