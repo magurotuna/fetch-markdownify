@@ -7,6 +7,7 @@ import {
 import { z } from "npm:zod@3.23.8";
 import { convertToMarkdown } from "./markdown.ts";
 import { estimateTokens, splitIntoChunks } from "./tokenizer.ts";
+import { getFileMetadata, saveMarkdownToTempFile } from "./file_manager.ts";
 
 const FetchUrlSchema = z.object({
   url: z.string().url().describe("The URL to fetch and convert to markdown"),
@@ -26,6 +27,12 @@ const FetchUrlSchema = z.object({
     .boolean()
     .optional()
     .describe("Return only metadata about chunks (default: false)"),
+  save_to_file: z
+    .boolean()
+    .optional()
+    .describe(
+      "Save content to temporary file instead of returning it (default: false)",
+    ),
 });
 
 export interface ServerOptions {
@@ -78,6 +85,11 @@ export function createServer(options: ServerOptions = {}): Server {
                 description:
                   "Return only metadata about chunks (default: false)",
               },
+              save_to_file: {
+                type: "boolean",
+                description:
+                  "Save content to temporary file instead of returning it (default: false)",
+              },
             },
             required: ["url"],
           },
@@ -120,6 +132,29 @@ export function createServer(options: ServerOptions = {}): Server {
       // Apply character limit if specified (backward compatibility)
       if (args.limit && markdown.length > args.limit) {
         markdown = markdown.slice(0, args.limit);
+      }
+
+      // Handle save_to_file option
+      if (args.save_to_file) {
+        const { filepath } = await saveMarkdownToTempFile(markdown, args.url);
+        const metadata = await getFileMetadata(filepath, markdown, args.url);
+
+        return {
+          content: [{
+            type: "text",
+            text: JSON.stringify(
+              {
+                saved_to_file: true,
+                file_path: filepath,
+                file_metadata: metadata,
+                message:
+                  "Content saved successfully. Use file reading tools to access the content.",
+              },
+              null,
+              2,
+            ),
+          }],
+        };
       }
 
       // Handle chunking

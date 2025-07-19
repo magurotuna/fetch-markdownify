@@ -657,3 +657,179 @@ Deno.test("server handles large content with pagination", async () => {
     await server.close();
   }
 });
+
+Deno.test("server accepts save_to_file parameter", async () => {
+  const mockFetch = (_url: string | URL | Request) => {
+    return Promise.resolve(
+      new Response("<h1>Test</h1><p>Content to save</p>", {
+        status: 200,
+        headers: { "content-type": "text/html" },
+      }),
+    );
+  };
+
+  const [clientTransport, serverTransport] = InMemoryTransport
+    .createLinkedPair();
+  const server = createServer({ fetchFn: mockFetch });
+  await server.connect(serverTransport);
+
+  const client = new Client({
+    name: "test-client",
+    version: "1.0.0",
+  }, {
+    capabilities: {},
+  });
+
+  await client.connect(clientTransport);
+
+  try {
+    const result = await client.callTool(
+      {
+        name: "fetch-url",
+        arguments: {
+          url: "https://example.com/test.html",
+          save_to_file: true,
+        },
+      },
+      CallToolResultSchema,
+    ) as CallToolResultType;
+
+    assertExists(result.content);
+    const content = result.content[0] as TextContent;
+    const response = JSON.parse(content.text);
+
+    assertEquals(response.saved_to_file, true);
+    assertExists(response.file_path);
+    assertEquals(response.file_path.endsWith(".md"), true);
+    assertExists(response.file_metadata);
+    assertEquals(response.file_metadata.url, "https://example.com/test.html");
+
+    // Verify file exists
+    const fileInfo = await Deno.stat(response.file_path);
+    assertEquals(fileInfo.isFile, true);
+
+    // Verify content
+    const savedContent = await Deno.readTextFile(response.file_path);
+    assertEquals(savedContent.includes("# Test"), true);
+    assertEquals(savedContent.includes("Content to save"), true);
+
+    // Cleanup
+    await Deno.remove(response.file_path);
+  } finally {
+    await client.close();
+    await server.close();
+  }
+});
+
+Deno.test("save_to_file takes precedence over pagination", async () => {
+  const largeContent = "<p>Large content</p>".repeat(1000);
+  const mockFetch = (_url: string | URL | Request) => {
+    return Promise.resolve(
+      new Response(largeContent, {
+        status: 200,
+        headers: { "content-type": "text/html" },
+      }),
+    );
+  };
+
+  const [clientTransport, serverTransport] = InMemoryTransport
+    .createLinkedPair();
+  const server = createServer({ fetchFn: mockFetch });
+  await server.connect(serverTransport);
+
+  const client = new Client({
+    name: "test-client",
+    version: "1.0.0",
+  }, {
+    capabilities: {},
+  });
+
+  await client.connect(clientTransport);
+
+  try {
+    const result = await client.callTool(
+      {
+        name: "fetch-url",
+        arguments: {
+          url: "https://example.com/test.html",
+          save_to_file: true,
+          chunk_size: 100, // Should be ignored
+          chunk_index: 1, // Should be ignored
+        },
+      },
+      CallToolResultSchema,
+    ) as CallToolResultType;
+
+    const firstContent = result.content[0] as TextContent;
+    const response = JSON.parse(firstContent.text);
+    assertEquals(response.saved_to_file, true);
+
+    // Verify full content is saved, not just a chunk
+    const savedContent = await Deno.readTextFile(response.file_path);
+    assertEquals((savedContent.match(/Large content/g) || []).length, 1000);
+
+    await Deno.remove(response.file_path);
+  } finally {
+    await client.close();
+    await server.close();
+  }
+});
+
+Deno.test("large content is saved efficiently to file", async () => {
+  const largeParagraph =
+    "<p>This is a large paragraph that will be repeated.</p>";
+  const largeHtml = `<html><body>${largeParagraph.repeat(10000)}</body></html>`;
+
+  const mockFetch = (_url: string | URL | Request) => {
+    return Promise.resolve(
+      new Response(largeHtml, {
+        status: 200,
+        headers: { "content-type": "text/html" },
+      }),
+    );
+  };
+
+  const [clientTransport, serverTransport] = InMemoryTransport
+    .createLinkedPair();
+  const server = createServer({ fetchFn: mockFetch });
+  await server.connect(serverTransport);
+
+  const client = new Client({
+    name: "test-client",
+    version: "1.0.0",
+  }, {
+    capabilities: {},
+  });
+
+  await client.connect(clientTransport);
+
+  try {
+    const result = await client.callTool(
+      {
+        name: "fetch-url",
+        arguments: {
+          url: "https://example.com/large.html",
+          save_to_file: true,
+        },
+      },
+      CallToolResultSchema,
+    ) as CallToolResultType;
+
+    const firstContent = result.content[0] as TextContent;
+    const response = JSON.parse(firstContent.text);
+
+    // Verify response structure
+    assertEquals(response.saved_to_file, true);
+    assertEquals(response.message.includes("successfully"), true);
+
+    // Verify file size is reasonable
+    assertEquals(response.file_metadata.size_bytes > 100000, true);
+    assertEquals(response.file_metadata.total_tokens > 25000, true);
+
+    // Cleanup
+    await Deno.remove(response.file_path);
+  } finally {
+    await client.close();
+    await server.close();
+  }
+});
